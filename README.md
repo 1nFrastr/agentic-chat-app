@@ -1,5 +1,7 @@
 # Agentic Chat App
 
+English | [简体中文](README_CN.md)
+
 A full-stack agentic conversation application forked from [agent-chat-ui](https://github.com/langchain-ai/agent-chat-ui), featuring advanced AI agent interactions with human-in-the-loop capabilities, task planning, and parallel tool execution.
 
 ## 🚀 Tech Stack
