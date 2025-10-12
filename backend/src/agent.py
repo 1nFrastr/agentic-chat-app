@@ -79,6 +79,14 @@ class TodoItem(TypedDict):
     status: str  # pending, in_progress, completed
 
 
+# Global state to store the current todo plan
+_todo_state = {
+    "email": "",
+    "research_topic": "",
+    "steps": []  # List of TodoItem
+}
+
+
 def add_human_in_the_loop(
     tool: Callable | BaseTool,
     *,
@@ -151,6 +159,11 @@ def create_todo_plan(
     Returns:
         Confirmation message with the plan
     """
+    # Store the todo plan in global state
+    _todo_state["email"] = email
+    _todo_state["research_topic"] = research_topic
+    _todo_state["steps"] = [{"step": step, "status": "pending"} for step in steps]
+
     plan = f"Research Plan for: {research_topic}\n"
     plan += f"Report will be sent to: {email}\n\n"
     plan += "Steps:\n"
@@ -172,9 +185,23 @@ def update_todo_status(
         status: New status (pending, in_progress, completed)
 
     Returns:
-        Confirmation message
+        All todo steps with their corresponding status
     """
-    return f"Step {step_number} status updated to: {status.upper()}"
+    # Update the status of the specified step
+    if 0 < step_number <= len(_todo_state["steps"]):
+        _todo_state["steps"][step_number - 1]["status"] = status
+    else:
+        return f"Error: Invalid step number {step_number}. Valid range: 1-{len(_todo_state['steps'])}"
+
+    # Return all steps with their current status
+    result = f"Research Plan for: {_todo_state['research_topic']}\n"
+    result += f"Report will be sent to: {_todo_state['email']}\n\n"
+    result += "Steps:\n"
+    for i, todo_item in enumerate(_todo_state["steps"], 1):
+        status_display = todo_item["status"].upper()
+        result += f"{i}. {todo_item['step']} [{status_display}]\n"
+
+    return result
 
 
 @create_tool
