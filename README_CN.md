@@ -4,6 +4,8 @@
 
 一个全栈智能对话应用，fork 自 [agent-chat-ui](https://github.com/langchain-ai/agent-chat-ui)，具有高级 AI 智能体交互、人机协同、任务规划和并行工具执行等功能。
 
+https://github.com/user-attachments/assets/3bbe19cc-2a2d-40d4-a47f-9fa54273f8b5
+
 ## 🚀 技术栈
 
 ### 前端
@@ -115,3 +117,4 @@ uv run langgraph dev
 ```
 
 后端将在 `http://localhost:2024` 上运行
+
