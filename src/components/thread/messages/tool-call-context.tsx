@@ -38,8 +38,8 @@ function getToolCallStatus(
       : JSON.stringify(toolResult.content);
 
   if (
-    content.toLowerCase().includes("error") ||
-    content.toLowerCase().includes("failed")
+    content.toLowerCase().includes("tool call error") ||
+    content.toLowerCase().includes("tool call failed")
   ) {
     return "failed";
   }
