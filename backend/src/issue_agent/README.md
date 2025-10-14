@@ -1,0 +1,266 @@
+# Issue Agent - GitHub Issue 分诊系统
+
+这是一个基于 LangGraph 的智能 Issue 分诊系统,能够自动分析 GitHub Issue 并进行分类和分配。
+
+## 功能特性
+
+- 🏷️ **智能分类**: 使用 LLM 将 Issue 分类为 Bug、Feature Request 或 Question
+- 👥 **自动分配**: 根据分类规则自动分配给对应的开发者
+- 🔄 **简洁架构**: 所有核心逻辑集成在少量文件中，易于理解和维护
+
+## Issue 示例数据 (JSON 格式)
+
+### 示例 1: Bug 类型
+
+```json
+{
+  "title": "应用启动时崩溃",
+  "body": "当我点击启动按钮时,应用立即崩溃。\n\n复现步骤:\n1. 打开应用\n2. 点击 \"Start\" 按钮\n3. 应用崩溃并显示错误信息\n\n错误信息:\n```\nNullPointerException at line 42 in MainActivity.java\n```\n\n环境信息:\n- OS: Windows 10\n- App Version: 2.3.1\n- 浏览器: Chrome 120"
+}
+```
+
+**预期分类**: Bug  
+**预期分配**: 张三
+
+---
+
+### 示例 2: Feature Request 类型
+
+```json
+{
+  "title": "希望添加暗色模式支持",
+  "body": "希望能添加暗色模式支持。\n\n建议内容:\n- 在设置中添加主题切换选项\n- 支持跟随系统主题自动切换\n- 保存用户的主题偏好设置\n\n使用场景:\n很多用户在夜间使用应用时,希望有深色主题来保护眼睛,减少屏幕亮度对眼睛的刺激。\n\n参考:\n许多流行应用(如 Twitter, GitHub)都已经支持暗色模式。"
+}
+```
+
+**预期分类**: Feature Request  
+**预期分配**: 李四
+
+---
+
+### 示例 3: Question 类型
+
+```json
+{
+  "title": "如何配置 API 端点？",
+  "body": "我不太理解如何配置自定义的 API 端点。\n\n问题:\n1. 在哪个配置文件中设置 API URL?\n2. 是否需要重启应用才能生效?\n3. 支持哪些环境变量?\n\n我查看了文档,但没有找到相关说明。能否提供一些示例配置?\n\n谢谢!"
+}
+```
+
+**预期分类**: Question  
+**预期分配**: 王五
+
+---
+
+### 示例 4: Bug 类型 (内存泄漏)
+
+```json
+{
+  "title": "后台服务内存泄漏",
+  "body": "发现后台服务存在内存泄漏问题。\n\n症状:\n- 应用长时间运行后内存占用持续增长\n- 最终导致 OOM (Out of Memory) 错误\n- 重启后暂时恢复正常\n\n性能数据:\n- 初始内存: 150MB\n- 运行 1 小时后: 450MB\n- 运行 3 小时后: 1.2GB\n- 运行 6 小时后: 崩溃\n\n环境:\n- Android 12\n- 设备: Samsung Galaxy S21\n- App Version: 3.0.2"
+}
+```
+
+**预期分类**: Bug  
+**预期分配**: 张三
+
+---
+
+### 示例 5: Feature Request 类型 (UX 改进)
+
+```json
+{
+  "title": "改进加载动画和用户反馈",
+  "body": "当前的加载动画不够明显,建议改进用户反馈体验。\n\n改进建议:\n1. 更新加载动画为骨架屏(Skeleton Screen)\n2. 添加操作成功/失败的 Toast 提示\n3. 增加进度条显示长时间操作的进度\n4. 添加空状态插图和友好提示文案\n\n设计参考:\n可以参考 Material Design 3 的加载模式和反馈组件。"
+}
+```
+
+**预期分类**: Feature Request  
+**预期分配**: 李四
+
+---
+
+### 示例 6: Question 类型 (认证问题)
+
+```json
+{
+  "title": "认证令牌过期行为是怎样的？",
+  "body": "请问关于认证令牌过期的处理机制是怎样的?\n\n具体问题:\n1. Token 的默认过期时间是多久?\n2. 过期后会自动刷新还是需要重新登录?\n3. 如何检测 Token 即将过期?\n4. Refresh Token 的有效期是多久?\n\n使用场景:\n我们正在集成你们的 API,需要了解如何妥善处理认证相关的边界情况。"
+}
+```
+
+**预期分类**: Question  
+**预期分配**: 王五
+
+---
+
+### 示例 7: Bug 类型 (数据库连接)
+
+```json
+{
+  "title": "无法连接到数据库",
+  "body": "应用无法连接到数据库,显示连接超时错误。\n\n错误堆栈:\n```\nTimeoutError: Connection timeout after 30000ms\n  at DatabaseConnection.connect (db.js:45)\n```\n\n环境:\n- Node.js: v18.17.0\n- Database: PostgreSQL 15\n- OS: Ubuntu 22.04"
+}
+```
+
+**预期分类**: Bug  
+**预期分配**: 张三
+
+---
+
+### 示例 8: Feature Request 类型 (导出功能)
+
+```json
+{
+  "title": "添加导出为 PDF 的功能",
+  "body": "希望添加导出为 PDF 的功能。\n\n功能需求:\n- 支持导出当前报表为 PDF 格式\n- 保持原有样式和布局\n- 支持自定义页眉页脚\n- 支持添加水印\n\n业务价值:\n许多企业客户需要将报表打印或存档,PDF 是最常用的格式。"
+}
+```
+
+**预期分类**: Feature Request  
+**预期分配**: 李四
+
+---
+
+## 分配规则
+
+| Issue 类型 | 负责人 | 职责 |
+|-----------|--------|------|
+| Bug | 张三 | Bug 修复和问题排查 |
+| Feature Request | 李四 | 新功能开发和产品增强 |
+| Question | 王五 | 技术支持和用户帮助 |
+| 未知类型 | 项目负责人 | 默认分配和初步分流 |
+
+## 配置说明
+
+### 环境变量
+
+系统支持通过环境变量配置 LLM 提供商：
+
+- `OPENAI_API_KEY`: OpenAI API 密钥 (优先使用)
+- `ANTHROPIC_API_KEY`: Anthropic API 密钥 (备用)
+
+### LLM 模型
+
+- OpenAI: `gpt-4o-mini`
+- Anthropic: `claude-3-5-sonnet-20241022`
+
+系统会自动选择可用的 API 密钥，优先使用 OpenAI。
+
+### 分类规则配置
+
+分类规则直接在 `agent.py` 中定义，可以轻松修改：
+
+```python
+# Issue 分类到开发者的分配映射
+CATEGORY_ASSIGNMENTS = {
+    "Bug": "张三",
+    "Feature Request": "李四",
+    "Question": "王五",
+}
+
+# 默认分配人(当分类不在上述映射中时使用)
+DEFAULT_ASSIGNEE = "项目负责人"
+```
+
+## 项目结构
+
+```
+issue_agent/
+├── agent.py             # 核心逻辑：Agent、工具、配置、LLM（整合）
+├── models.py            # 数据模型和类型定义
+├── prompts.py           # Prompt 模板管理
+└── README.md            # 本文件
+```
+
+### 架构设计
+
+项目采用简洁的模块化设计：
+
+- **agent.py**: 核心文件，包含：
+  - LangGraph Agent 工作流定义
+  - 工具函数（`assign_developer`）
+  - LLM 初始化和配置
+  - 分类规则和分配映射
+  
+- **models.py**: 数据结构定义
+  - 类型定义（`CategoryType`）
+  - 分类描述（`CATEGORY_DESCRIPTIONS`）
+  - Pydantic 模型（`AssignDeveloperInput`）
+
+- **prompts.py**: Prompt 管理
+  - 系统提示词生成
+  - 动态 Prompt 构建
+
+### 为什么整合到一个文件？
+
+1. **减少文件切换**：核心逻辑在一个文件中，便于阅读和理解
+2. **降低复杂度**：不需要过度的模块划分
+3. **提高可维护性**：小型项目中，简洁的结构更易维护
+4. **快速定位**：所有业务逻辑都在 `agent.py` 中
+
+## 使用方法
+
+### 基本使用
+
+```python
+from src.issue_agent.agent import agent
+
+# 准备 Issue 数据
+issue_data = {
+    "title": "应用启动时崩溃",
+    "body": "应用启动时崩溃..."
+}
+
+# 调用 Agent
+result = agent.invoke({
+    "messages": [
+        {"role": "user", "content": f"标题: {issue_data['title']}\n\n内容: {issue_data['body']}"}
+    ]
+})
+
+# 获取结果
+print(result["messages"][-1].content)
+```
+
+### 修改分类规则
+
+直接编辑 `agent.py` 中的配置：
+
+```python
+# 添加新的分类
+CATEGORY_ASSIGNMENTS = {
+    "Bug": "张三",
+    "Feature Request": "李四",
+    "Question": "王五",
+    "Documentation": "赵六",  # 新增
+}
+```
+
+同时需要在 `models.py` 中更新类型定义：
+
+```python
+CategoryType = Literal["Bug", "Feature Request", "Question", "Documentation"]
+```
+
+### 更换 LLM 提供商
+
+在 `agent.py` 中的 `create_llm_model()` 函数中配置：
+
+```python
+def create_llm_model():
+    """创建 LLM 模型实例"""
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    
+    if openai_api_key:
+        return init_chat_model("gpt-4o-mini", model_provider="openai")
+    elif anthropic_api_key:
+        return init_chat_model("claude-3-5-sonnet-20241022", model_provider="anthropic")
+    else:
+        raise ValueError("请设置 OPENAI_API_KEY 或 ANTHROPIC_API_KEY 环境变量")
+```
+
+## 许可证
+
+请参考项目根目录的 LICENSE 文件。
