@@ -3,7 +3,7 @@
 
 本模块实现 Issue 分诊 Agent 的核心逻辑。
 使用 LangGraph 的 StateGraph 构建工作流，结合 LLM 进行推理决策。
-每个工具作为独立节点，Agent 可以展示思考过程。
+Agent 直接分析 Issue 并分类，只使用工具查询确定性数据（如开发者分配）。
 """
 
 from typing import Annotated, Literal
@@ -14,9 +14,11 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
 # 导入工具
-from src.issue_agent.tools import read_issue_content, categorize_issue, assign_developer
+from src.issue_agent.tools import assign_developer
 # 导入 LLM 创建函数
 from src.issue_agent.llm import create_llm_model
+# 导入模型定义
+from src.issue_agent.models import CATEGORY_DESCRIPTIONS
 
 
 class AgentState(TypedDict):
@@ -28,38 +30,41 @@ class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
 
 
-# Agent System Prompt
-# 专注于工作流程指导，具体的分类标准由工具的 prompt 处理
-SYSTEM_PROMPT = """你是一个 GitHub Issue 自动分诊助手。你的任务是分析 Issue 并完成以下流程：
+def _build_system_prompt() -> str:
+    """动态构建系统 prompt，包含分类标准"""
+    # 构建分类描述部分
+    category_sections = []
+    for idx, (category, info) in enumerate(CATEGORY_DESCRIPTIONS.items(), 1):
+        features = "\n   ".join(f"- {feature}" for feature in info["features"])
+        section = f"{idx}. {info['name']} ({category}) - {info['description']}\n   特征：\n   {features}"
+        category_sections.append(section)
+    
+    categories_text = "\n\n".join(category_sections)
+    
+    return f"""你是一个 GitHub Issue 自动分诊助手。
 
-工作流程（必须按顺序执行）：
-1. 使用 read_issue_content 工具读取 Issue 的标题和描述
-2. 使用 categorize_issue 工具对 Issue 进行分类
-3. 使用 assign_developer 工具根据分类结果分配合适的开发者
+工作流程：
+1. 分析 Issue 的标题和描述内容
+2. 根据内容特征进行分类（以下是可用的分类）：
 
-重要说明：
-- 必须按照上述顺序依次调用三个工具
-- 每个工具的输出是下一个工具的输入
-- 在调用每个工具前，简要说明你要做什么
-- 在收到工具结果后，简要总结结果
+{categories_text}
 
-输出格式：
-完成所有工具调用后，请总结分诊结果，格式如下：
+3. 使用 assign_developer 工具查询该分类对应的开发者
 
-分诊完成！
-- Issue 类型: [分类]
-- 分配给: [开发者名称]
+请先分析 Issue 内容，直接在回复中给出分类和理由，然后调用 assign_developer 工具获取开发者信息。"""
 
-请开始执行分诊流程。"""
+
+# 动态生成系统 prompt
+SYSTEM_PROMPT = _build_system_prompt()
 
 
 def call_model(state: AgentState) -> AgentState:
-    """调用 LLM 进行推理和决策
+    """调用 LLM 进行推理和工具调用
 
     这是 Agent 的核心节点，负责：
-    1. 分析当前状态
-    2. 决定下一步行动（调用哪个工具）
-    3. 生成思考过程
+    1. 分析 Issue 并进行分类（在回复中展示）
+    2. 决定调用 assign_developer 工具
+    3. 生成最终总结
 
     Args:
         state: 当前 Agent 状态
@@ -69,13 +74,13 @@ def call_model(state: AgentState) -> AgentState:
     """
     messages = state["messages"]
 
-    # 添加系统提示（如果是第一次调用）
+    # 添加系统提示（第一次调用时）
     if len(messages) == 1:
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + messages
 
     # 创建 LLM 实例并绑定工具
     llm = create_llm_model()
-    tools = [read_issue_content, categorize_issue, assign_developer]
+    tools = [assign_developer]
     llm_with_tools = llm.bind_tools(tools)
 
     # 调用 LLM
@@ -110,23 +115,22 @@ def should_continue(state: AgentState) -> Literal["tools", "end"]:
 def create_triage_agent():
     """创建 Issue 分诊 Agent
 
-    使用 StateGraph 构建工作流：
-    1. agent 节点：LLM 进行推理和决策
-    2. tools 节点：执行工具调用
-    3. 条件边：根据 LLM 的决策选择下一步
+    使用 StateGraph 构建简洁的工作流：
+    1. agent 节点：LLM 分析 Issue、给出分类、调用工具
+    2. tools 节点：执行工具调用（仅 assign_developer）
 
     Returns:
         编译后的 Agent 图
     """
-    # 创建工具节点
-    tool_node = ToolNode([read_issue_content, categorize_issue, assign_developer])
+    # 创建工具节点（只包含确定性工具）
+    tool_node = ToolNode([assign_developer])
 
     # 创建 StateGraph
     workflow = StateGraph(AgentState)
 
     # 添加节点
-    workflow.add_node("agent", call_model)
-    workflow.add_node("tools", tool_node)
+    workflow.add_node("agent", call_model)   # 主节点：推理 + 工具调用
+    workflow.add_node("tools", tool_node)     # 工具执行
 
     # 添加边
     workflow.add_edge(START, "agent")
@@ -141,7 +145,7 @@ def create_triage_agent():
         }
     )
 
-    # 工具执行后返回 agent 继续思考
+    # 工具执行后返回 agent 继续（生成总结）
     workflow.add_edge("tools", "agent")
 
     # 编译图

@@ -67,59 +67,11 @@ DEFAULT_ASSIGNEE = "项目负责人"
 # 工具输入模型定义
 # ============================================================================
 
-class ReadIssueInput(BaseModel):
-    """read_issue_content 工具的输入模型
-    
-    用于从 GitHub Issue 数据中提取标题和描述内容。
-    
-    Attributes:
-        title: Issue 标题
-        body: Issue 描述正文
-    """
-    
-    model_config = ConfigDict(
-        str_strip_whitespace=True,
-        validate_assignment=True,
-    )
-    
-    title: str = Field(
-        ...,
-        min_length=1,
-        description="Issue 标题"
-    )
-    
-    body: str = Field(
-        ...,
-        min_length=1,
-        description="Issue 描述正文"
-    )
-
-
-class CategorizeIssueInput(BaseModel):
-    """categorize_issue 工具的输入模型
-    
-    用于将 Issue 内容进行智能分类。
-    
-    Attributes:
-        text_content: Issue 的文本内容，应包含标题和正文
-    """
-    
-    model_config = ConfigDict(
-        str_strip_whitespace=True,
-        validate_assignment=True,
-    )
-    
-    text_content: str = Field(
-        ...,
-        min_length=1,
-        description="Issue 的文本内容，包含标题和正文"
-    )
-
-
 class AssignDeveloperInput(BaseModel):
     """assign_developer 工具的输入模型
     
     用于根据 Issue 分类分配负责的开发者。
+    这是一个确定性工具：给定分类，返回对应的开发者。
     
     Attributes:
         category: Issue 分类类型
@@ -134,15 +86,20 @@ class AssignDeveloperInput(BaseModel):
         description="Issue 分类类型"
     )
 
+
+# ============================================================================
+# LLM 输出模型定义
+# ============================================================================
 
 class IssueClassificationOutput(BaseModel):
     """LLM 返回的分类结果模型
     
-    用于 categorize_issue 工具中，表示 LLM 的结构化输出。
+    用于 Agent 中的结构化输出，让 LLM 直接进行分类推理。
+    不通过工具调用，而是通过 with_structured_output 实现。
     
     Attributes:
         category: Issue 分类类型
-        reasoning: 分类的理由说明（可选）
+        reasoning: 分类的理由说明
     """
     
     model_config = ConfigDict(
@@ -154,7 +111,7 @@ class IssueClassificationOutput(BaseModel):
         description="Issue 分类类型"
     )
     
-    reasoning: Optional[str] = Field(
-        default=None,
-        description="分类的理由"
+    reasoning: str = Field(
+        ...,
+        description="分类的理由，解释为什么将 Issue 归类为该类型"
     )
