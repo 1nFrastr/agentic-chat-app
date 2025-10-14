@@ -146,7 +146,6 @@
 
 ```
 issue_agent/
-├── __init__.py          # 包初始化
 ├── agent.py             # LangGraph Agent 定义
 ├── config.py            # 配置管理
 ├── main.py              # 主入口

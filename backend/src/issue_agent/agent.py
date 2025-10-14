@@ -148,16 +148,5 @@ def create_triage_agent():
     return workflow.compile()
 
 
-def get_agent():
-    """获取 Issue 分诊 Agent 实例
-
-    这是一个便捷函数，用于获取编译后的 Agent 实例。
-    每次调用都会创建一个新的 Agent 实例。
-
-    Returns:
-        编译后的 Agent 图
-    """
-    return create_triage_agent()
-
-
+# 创建 Agent 实例供 LangGraph 使用
 agent = create_triage_agent()
