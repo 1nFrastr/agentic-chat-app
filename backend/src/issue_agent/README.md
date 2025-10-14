@@ -4,9 +4,9 @@
 
 ## 功能特性
 
-- 📖 **Issue 内容读取**: 自动提取和格式化 Issue 标题和正文
 - 🏷️ **智能分类**: 使用 LLM 将 Issue 分类为 Bug、Feature Request 或 Question
 - 👥 **自动分配**: 根据分类规则自动分配给对应的开发者
+- 🔄 **简洁架构**: 所有核心逻辑集成在少量文件中，易于理解和维护
 
 ## Issue 示例数据 (JSON 格式)
 
@@ -133,25 +133,132 @@
 
 ## 配置说明
 
-系统支持通过环境变量配置:
+### 环境变量
+
+系统支持通过环境变量配置 LLM 提供商：
 
 - `OPENAI_API_KEY`: OpenAI API 密钥 (优先使用)
 - `ANTHROPIC_API_KEY`: Anthropic API 密钥 (备用)
 
-分类模型:
+### LLM 模型
+
 - OpenAI: `gpt-4o-mini`
 - Anthropic: `claude-3-5-sonnet-20241022`
+
+系统会自动选择可用的 API 密钥，优先使用 OpenAI。
+
+### 分类规则配置
+
+分类规则直接在 `agent.py` 中定义，可以轻松修改：
+
+```python
+# Issue 分类到开发者的分配映射
+CATEGORY_ASSIGNMENTS = {
+    "Bug": "张三",
+    "Feature Request": "李四",
+    "Question": "王五",
+}
+
+# 默认分配人(当分类不在上述映射中时使用)
+DEFAULT_ASSIGNEE = "项目负责人"
+```
 
 ## 项目结构
 
 ```
 issue_agent/
-├── agent.py             # LangGraph Agent 定义
-├── config.py            # 配置管理
-├── main.py              # 主入口
-├── models.py            # 数据模型
-├── tools.py             # 工具函数
+├── agent.py             # 核心逻辑：Agent、工具、配置、LLM（整合）
+├── models.py            # 数据模型和类型定义
+├── prompts.py           # Prompt 模板管理
 └── README.md            # 本文件
+```
+
+### 架构设计
+
+项目采用简洁的模块化设计：
+
+- **agent.py**: 核心文件，包含：
+  - LangGraph Agent 工作流定义
+  - 工具函数（`assign_developer`）
+  - LLM 初始化和配置
+  - 分类规则和分配映射
+  
+- **models.py**: 数据结构定义
+  - 类型定义（`CategoryType`）
+  - 分类描述（`CATEGORY_DESCRIPTIONS`）
+  - Pydantic 模型（`AssignDeveloperInput`）
+
+- **prompts.py**: Prompt 管理
+  - 系统提示词生成
+  - 动态 Prompt 构建
+
+### 为什么整合到一个文件？
+
+1. **减少文件切换**：核心逻辑在一个文件中，便于阅读和理解
+2. **降低复杂度**：不需要过度的模块划分
+3. **提高可维护性**：小型项目中，简洁的结构更易维护
+4. **快速定位**：所有业务逻辑都在 `agent.py` 中
+
+## 使用方法
+
+### 基本使用
+
+```python
+from src.issue_agent.agent import agent
+
+# 准备 Issue 数据
+issue_data = {
+    "title": "Bug: App crashes on startup",
+    "body": "应用启动时崩溃..."
+}
+
+# 调用 Agent
+result = agent.invoke({
+    "messages": [
+        {"role": "user", "content": f"标题: {issue_data['title']}\n\n内容: {issue_data['body']}"}
+    ]
+})
+
+# 获取结果
+print(result["messages"][-1].content)
+```
+
+### 修改分类规则
+
+直接编辑 `agent.py` 中的配置：
+
+```python
+# 添加新的分类
+CATEGORY_ASSIGNMENTS = {
+    "Bug": "张三",
+    "Feature Request": "李四",
+    "Question": "王五",
+    "Documentation": "赵六",  # 新增
+}
+```
+
+同时需要在 `models.py` 中更新类型定义：
+
+```python
+CategoryType = Literal["Bug", "Feature Request", "Question", "Documentation"]
+```
+
+### 更换 LLM 提供商
+
+在 `agent.py` 中的 `create_llm_model()` 函数中配置：
+
+```python
+def create_llm_model():
+    """创建 LLM 模型实例"""
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    
+    if openai_api_key:
+        return init_chat_model("gpt-4o-mini", model_provider="openai")
+    elif anthropic_api_key:
+        return init_chat_model("claude-3-5-sonnet-20241022", model_provider="anthropic")
+    else:
+        raise ValueError("请设置 OPENAI_API_KEY 或 ANTHROPIC_API_KEY 环境变量")
 ```
 
 ## 许可证

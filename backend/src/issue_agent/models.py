@@ -5,7 +5,7 @@
 使用 Pydantic 提供数据验证、类型检查和自动转换，确保数据结构的一致性和类型安全。
 """
 
-from typing import Optional, Literal
+from typing import Literal
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -84,34 +84,4 @@ class AssignDeveloperInput(BaseModel):
     category: CategoryType = Field(
         ...,
         description="Issue 分类类型"
-    )
-
-
-# ============================================================================
-# LLM 输出模型定义
-# ============================================================================
-
-class IssueClassificationOutput(BaseModel):
-    """LLM 返回的分类结果模型
-    
-    用于 Agent 中的结构化输出，让 LLM 直接进行分类推理。
-    不通过工具调用，而是通过 with_structured_output 实现。
-    
-    Attributes:
-        category: Issue 分类类型
-        reasoning: 分类的理由说明
-    """
-    
-    model_config = ConfigDict(
-        validate_assignment=True,
-    )
-    
-    category: CategoryType = Field(
-        ...,
-        description="Issue 分类类型"
-    )
-    
-    reasoning: str = Field(
-        ...,
-        description="分类的理由，解释为什么将 Issue 归类为该类型"
     )

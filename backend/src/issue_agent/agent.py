@@ -6,19 +6,83 @@
 Agent 直接分析 Issue 并分类，只使用工具查询确定性数据（如开发者分配）。
 """
 
+import os
 from typing import Annotated, Literal
 from typing_extensions import TypedDict
 from langchain_core.messages import BaseMessage
+from langchain_core.tools import tool
+from langchain.chat_models import init_chat_model
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
-# 导入工具
-from src.issue_agent.tools import assign_developer
-# 导入 LLM 创建函数
-from src.issue_agent.llm import create_llm_model
 # 导入模型定义
-from src.issue_agent.models import CATEGORY_DESCRIPTIONS
+from src.issue_agent.models import (
+    CategoryType, 
+    AssignDeveloperInput,
+    CATEGORY_ASSIGNMENTS,
+    DEFAULT_ASSIGNEE
+)
+# 导入系统 Prompt
+from src.issue_agent.prompts import SYSTEM_PROMPT
+
+
+# ============================================================================
+# LLM 模型创建
+# ============================================================================
+
+def create_llm_model(temperature: float = 0):
+    """创建 LLM 模型实例
+
+    使用统一的 init_chat_model 接口，支持 'provider:model' 格式。
+    从环境变量读取 LLM_PROVIDER 和对应的模型名称。
+    """
+    provider = os.getenv("LLM_PROVIDER", "anthropic").lower()
+    
+    # 防御式编程：确保 provider 有效
+    if provider not in ("openai", "anthropic"):
+        raise ValueError(
+            f"不支持的 LLM_PROVIDER: {provider}。请设置为 'openai' 或 'anthropic'。"
+        )
+    
+    # 根据 provider 获取对应的模型名称
+    model_env_key = f"{provider.upper()}_MODEL"
+    default_models = {
+        "openai": "gpt-4o-mini",
+        "anthropic": "claude-3-5-sonnet-20241022"
+    }
+    model = os.getenv(model_env_key, default_models[provider])
+    
+    # 直接拼接 model_string
+    model_string = f"{provider}:{model}"
+    
+    return init_chat_model(model_string, temperature=temperature)
+
+
+# ============================================================================
+# 工具定义
+# ============================================================================
+
+@tool("assign_developer", args_schema=AssignDeveloperInput, return_direct=False)
+def assign_developer(category: CategoryType) -> str:
+    """根据 Issue 分类分配负责的开发者。
+
+    此工具根据预定义的分配规则，为不同类型的 Issue 分配
+    合适的开发者或团队成员。这是一个确定性操作：给定分类，
+    返回对应的开发者。
+
+    Args:
+        category: Issue 分类类型
+
+    Returns:
+        被分配开发者的名称
+    """
+    return CATEGORY_ASSIGNMENTS.get(category, DEFAULT_ASSIGNEE)
+
+
+# ============================================================================
+# Agent 状态和节点定义
+# ============================================================================
 
 
 class AgentState(TypedDict):
@@ -28,34 +92,6 @@ class AgentState(TypedDict):
         messages: 消息历史列表，包含 Agent 的思考过程
     """
     messages: Annotated[list[BaseMessage], add_messages]
-
-
-def _build_system_prompt() -> str:
-    """动态构建系统 prompt，包含分类标准"""
-    # 构建分类描述部分
-    category_sections = []
-    for idx, (category, info) in enumerate(CATEGORY_DESCRIPTIONS.items(), 1):
-        features = "\n   ".join(f"- {feature}" for feature in info["features"])
-        section = f"{idx}. {info['name']} ({category}) - {info['description']}\n   特征：\n   {features}"
-        category_sections.append(section)
-    
-    categories_text = "\n\n".join(category_sections)
-    
-    return f"""你是一个 GitHub Issue 自动分诊助手。
-
-工作流程：
-1. 分析 Issue 的标题和描述内容
-2. 根据内容特征进行分类（以下是可用的分类）：
-
-{categories_text}
-
-3. 使用 assign_developer 工具查询该分类对应的开发者
-
-请先分析 Issue 内容，直接在回复中给出分类和理由，然后调用 assign_developer 工具获取开发者信息。"""
-
-
-# 动态生成系统 prompt
-SYSTEM_PROMPT = _build_system_prompt()
 
 
 def call_model(state: AgentState) -> AgentState:
