@@ -6,11 +6,8 @@
 每个工具作为独立节点，Agent 可以展示思考过程。
 """
 
-import os
 from typing import Annotated, Literal
 from typing_extensions import TypedDict
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -18,6 +15,8 @@ from langgraph.prebuilt import ToolNode
 
 # 导入工具
 from src.issue_agent.tools import read_issue_content, categorize_issue, assign_developer
+# 导入 LLM 创建函数
+from src.issue_agent.llm import create_llm_model
 
 
 class AgentState(TypedDict):
@@ -27,39 +26,6 @@ class AgentState(TypedDict):
         messages: 消息历史列表，包含 Agent 的思考过程
     """
     messages: Annotated[list[BaseMessage], add_messages]
-
-
-def create_llm_model():
-    """创建 LLM 模型实例
-
-    根据环境变量选择合适的 LLM 提供商。
-    优先使用 OpenAI 的 gpt-4o-mini 模型，如果未配置则尝试使用 Anthropic。
-
-    Returns:
-        LLM 模型实例（ChatOpenAI 或 ChatAnthropic）
-
-    Raises:
-        ValueError: 如果未找到任何有效的 API 密钥
-    """
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if openai_api_key:
-        return ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0,
-            api_key=openai_api_key
-        )
-
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if anthropic_api_key:
-        return ChatAnthropic(
-            model="claude-3-5-sonnet-20241022",
-            temperature=0,
-            api_key=anthropic_api_key
-        )
-
-    raise ValueError(
-        "未找到有效的 API 密钥。请设置 OPENAI_API_KEY 或 ANTHROPIC_API_KEY 环境变量。"
-    )
 
 
 # Agent System Prompt
