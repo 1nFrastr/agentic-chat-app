@@ -14,7 +14,7 @@
 
 ```json
 {
-  "title": "Bug: App crashes on startup",
+  "title": "应用启动时崩溃",
   "body": "当我点击启动按钮时,应用立即崩溃。\n\n复现步骤:\n1. 打开应用\n2. 点击 \"Start\" 按钮\n3. 应用崩溃并显示错误信息\n\n错误信息:\n```\nNullPointerException at line 42 in MainActivity.java\n```\n\n环境信息:\n- OS: Windows 10\n- App Version: 2.3.1\n- 浏览器: Chrome 120"
 }
 ```
@@ -28,7 +28,7 @@
 
 ```json
 {
-  "title": "Feature Request: Add dark mode support",
+  "title": "希望添加暗色模式支持",
   "body": "希望能添加暗色模式支持。\n\n建议内容:\n- 在设置中添加主题切换选项\n- 支持跟随系统主题自动切换\n- 保存用户的主题偏好设置\n\n使用场景:\n很多用户在夜间使用应用时,希望有深色主题来保护眼睛,减少屏幕亮度对眼睛的刺激。\n\n参考:\n许多流行应用(如 Twitter, GitHub)都已经支持暗色模式。"
 }
 ```
@@ -42,7 +42,7 @@
 
 ```json
 {
-  "title": "How to configure API endpoints?",
+  "title": "如何配置 API 端点？",
   "body": "我不太理解如何配置自定义的 API 端点。\n\n问题:\n1. 在哪个配置文件中设置 API URL?\n2. 是否需要重启应用才能生效?\n3. 支持哪些环境变量?\n\n我查看了文档,但没有找到相关说明。能否提供一些示例配置?\n\n谢谢!"
 }
 ```
@@ -56,7 +56,7 @@
 
 ```json
 {
-  "title": "Memory leak in background service",
+  "title": "后台服务内存泄漏",
   "body": "发现后台服务存在内存泄漏问题。\n\n症状:\n- 应用长时间运行后内存占用持续增长\n- 最终导致 OOM (Out of Memory) 错误\n- 重启后暂时恢复正常\n\n性能数据:\n- 初始内存: 150MB\n- 运行 1 小时后: 450MB\n- 运行 3 小时后: 1.2GB\n- 运行 6 小时后: 崩溃\n\n环境:\n- Android 12\n- 设备: Samsung Galaxy S21\n- App Version: 3.0.2"
 }
 ```
@@ -70,7 +70,7 @@
 
 ```json
 {
-  "title": "Improve loading animation and user feedback",
+  "title": "改进加载动画和用户反馈",
   "body": "当前的加载动画不够明显,建议改进用户反馈体验。\n\n改进建议:\n1. 更新加载动画为骨架屏(Skeleton Screen)\n2. 添加操作成功/失败的 Toast 提示\n3. 增加进度条显示长时间操作的进度\n4. 添加空状态插图和友好提示文案\n\n设计参考:\n可以参考 Material Design 3 的加载模式和反馈组件。"
 }
 ```
@@ -84,7 +84,7 @@
 
 ```json
 {
-  "title": "Authentication token expiration behavior?",
+  "title": "认证令牌过期行为是怎样的？",
   "body": "请问关于认证令牌过期的处理机制是怎样的?\n\n具体问题:\n1. Token 的默认过期时间是多久?\n2. 过期后会自动刷新还是需要重新登录?\n3. 如何检测 Token 即将过期?\n4. Refresh Token 的有效期是多久?\n\n使用场景:\n我们正在集成你们的 API,需要了解如何妥善处理认证相关的边界情况。"
 }
 ```
@@ -98,7 +98,7 @@
 
 ```json
 {
-  "title": "Error: Cannot connect to database",
+  "title": "无法连接到数据库",
   "body": "应用无法连接到数据库,显示连接超时错误。\n\n错误堆栈:\n```\nTimeoutError: Connection timeout after 30000ms\n  at DatabaseConnection.connect (db.js:45)\n```\n\n环境:\n- Node.js: v18.17.0\n- Database: PostgreSQL 15\n- OS: Ubuntu 22.04"
 }
 ```
@@ -112,7 +112,7 @@
 
 ```json
 {
-  "title": "Add export to PDF functionality",
+  "title": "添加导出为 PDF 的功能",
   "body": "希望添加导出为 PDF 的功能。\n\n功能需求:\n- 支持导出当前报表为 PDF 格式\n- 保持原有样式和布局\n- 支持自定义页眉页脚\n- 支持添加水印\n\n业务价值:\n许多企业客户需要将报表打印或存档,PDF 是最常用的格式。"
 }
 ```
@@ -208,7 +208,7 @@ from src.issue_agent.agent import agent
 
 # 准备 Issue 数据
 issue_data = {
-    "title": "Bug: App crashes on startup",
+    "title": "应用启动时崩溃",
     "body": "应用启动时崩溃..."
 }
 
