@@ -20,7 +20,8 @@ from src.issue_agent.models import (
     ReadIssueInput,
     CategorizeIssueInput,
     AssignDeveloperInput,
-    IssueClassificationOutput
+    IssueClassificationOutput,
+    CATEGORY_DESCRIPTIONS
 )
 
 
@@ -40,7 +41,7 @@ def read_issue_content(title: str, body: str) -> str:
         body: Issue 描述正文
         
     Returns:
-        格式化的 Issue 内容字符串（JSON 格式）
+        格式化的 Issue 内容（JSON 格式）
     """
     # 构建 Issue 数据字典，保持结构清晰
     issue_content = {
@@ -51,52 +52,52 @@ def read_issue_content(title: str, body: str) -> str:
     return json.dumps(issue_content, ensure_ascii=False, indent=2)
 
 
-CLASSIFICATION_PROMPT = """你是一个 GitHub Issue 分类专家。请根据以下 Issue 内容，将其分类为以下三种类型之一：
+def _build_classification_prompt() -> str:
+    """动态构建分类 prompt，基于 CATEGORY_DESCRIPTIONS 配置。
+    
+    这样可以确保当添加新分类时，prompt 会自动更新，提高可维护性。
+    
+    Returns:
+        完整的分类 prompt 模板字符串
+    """
+    # 构建分类描述部分
+    category_sections = []
+    for idx, (category, info) in enumerate(CATEGORY_DESCRIPTIONS.items(), 1):
+        features = "\n   ".join(f"- {feature}" for feature in info["features"])
+        section = f"{idx}. {info['name']} - {info['description']}\n   特征：\n   {features}"
+        category_sections.append(section)
+    
+    categories_text = "\n\n".join(category_sections)
+    
+    # 构建完整 prompt
+    prompt_template = f"""你是一个 GitHub Issue 分类专家。请根据以下 Issue 内容，将其分类为以下类型之一：
 
-1. Bug - 软件错误或缺陷
-   特征：
-   - 错误信息、异常堆栈、崩溃报告
-   - 非预期行为、功能不工作、失败
-   - 包含关键词：错误、bug、crash、崩溃、不工作、失败、异常、报错等
-   - 通常包含复现步骤、环境信息、错误日志
-
-2. Feature Request - 新功能请求或改进建议
-   特征：
-   - 建议添加新功能或改进现有功能
-   - 包含关键词：希望、建议、应该添加、改进、增强、新功能、支持等
-   - 描述期望的功能或行为
-   - 通常包含使用场景和预期效果
-
-3. Question - 使用问题或疑问
-   特征：
-   - 询问如何使用、为什么、怎样操作
-   - 包含关键词：如何、为什么、怎样、怎么、询问、不理解、求助、请问等
-   - 寻求帮助或澄清疑问
-   - 通常是对功能或文档的疑问
+{categories_text}
 
 Issue 内容：
-{text_content}
+{{text_content}}
 
 请仔细分析 Issue 的标题和正文内容，根据上述特征进行分类。"""
+    
+    return prompt_template
+
+
+# 动态生成分类 prompt
+CLASSIFICATION_PROMPT = _build_classification_prompt()
 
 
 @tool("categorize_issue", args_schema=CategorizeIssueInput, return_direct=False)
 def categorize_issue(text_content: str) -> str:
-    """将 Issue 内容分类为 Bug、Feature Request 或 Question。
+    """对 Issue 内容进行智能分类。
 
     此工具使用 LLM 分析 Issue 的文本内容，根据内容特征判断 Issue 的类型。
-    这是分诊流程中的核心工具。
-
-    分类标准：
-    - Bug: 报告软件错误、异常、崩溃或非预期行为
-    - Feature Request: 建议新功能、改进或增强
-    - Question: 询问使用方法、寻求帮助或澄清疑问
+    支持的分类类型在 CATEGORY_DESCRIPTIONS 中定义。这是分诊流程中的核心工具。
 
     Args:
         text_content: Issue 的文本内容，应包含标题和正文信息
 
     Returns:
-        分类结果字符串
+        分类结果字符串，包含类别和分类理由
     """
     # 创建 LLM 实例（支持 OpenAI 和 Anthropic）
     llm = None
@@ -142,9 +143,9 @@ def assign_developer(category: CategoryType) -> str:
     合适的开发者或团队成员。这是分诊流程的最后一步。
 
     Args:
-        category: Issue 分类（Bug、Feature Request 或 Question）
+        category: Issue 分类类型
 
     Returns:
-        被分配开发者的名称字符串
+        被分配开发者的名称
     """
     return config.get_assignee(category)

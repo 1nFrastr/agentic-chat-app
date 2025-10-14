@@ -63,11 +63,12 @@ def create_llm_model():
 
 
 # Agent System Prompt
+# 专注于工作流程指导，具体的分类标准由工具的 prompt 处理
 SYSTEM_PROMPT = """你是一个 GitHub Issue 自动分诊助手。你的任务是分析 Issue 并完成以下流程：
 
 工作流程（必须按顺序执行）：
 1. 使用 read_issue_content 工具读取 Issue 的标题和描述
-2. 使用 categorize_issue 工具将 Issue 分类为 Bug、Feature Request 或 Question
+2. 使用 categorize_issue 工具对 Issue 进行分类
 3. 使用 assign_developer 工具根据分类结果分配合适的开发者
 
 重要说明：
@@ -82,7 +83,6 @@ SYSTEM_PROMPT = """你是一个 GitHub Issue 自动分诊助手。你的任务�
 分诊完成！
 - Issue 类型: [分类]
 - 分配给: [开发者名称]
-- 建议优先级: [根据类型建议优先级，Bug 为高，Feature Request 为中，Question 为低]
 
 请开始执行分诊流程。"""
 

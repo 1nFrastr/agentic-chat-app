@@ -16,6 +16,41 @@ from pydantic import BaseModel, Field, ConfigDict
 # 支持的 Issue 分类类型
 CategoryType = Literal["Bug", "Feature Request", "Question"]
 
+# Issue 分类的详细描述和特征
+# 用于 LLM 分类时的 prompt 生成，确保分类标准的一致性和可维护性
+CATEGORY_DESCRIPTIONS = {
+    "Bug": {
+        "name": "Bug",
+        "description": "软件错误或缺陷",
+        "features": [
+            "错误信息、异常堆栈、崩溃报告",
+            "非预期行为、功能不工作、失败",
+            "包含关键词：错误、bug、crash、崩溃、不工作、失败、异常、报错等",
+            "通常包含复现步骤、环境信息、错误日志"
+        ]
+    },
+    "Feature Request": {
+        "name": "Feature Request",
+        "description": "新功能请求或改进建议",
+        "features": [
+            "建议添加新功能或改进现有功能",
+            "包含关键词：希望、建议、应该添加、改进、增强、新功能、支持等",
+            "描述期望的功能或行为",
+            "通常包含使用场景和预期效果"
+        ]
+    },
+    "Question": {
+        "name": "Question",
+        "description": "使用问题或疑问",
+        "features": [
+            "询问如何使用、为什么、怎样操作",
+            "包含关键词：如何、为什么、怎样、怎么、询问、不理解、求助、请问等",
+            "寻求帮助或澄清疑问",
+            "通常是对功能或文档的疑问"
+        ]
+    }
+}
+
 # Issue 分类到开发者的分配映射
 # 注意: 此字典的键必须与 CategoryType 中定义的分类保持一致
 CATEGORY_ASSIGNMENTS = {
@@ -38,8 +73,8 @@ class ReadIssueInput(BaseModel):
     用于从 GitHub Issue 数据中提取标题和描述内容。
     
     Attributes:
-        title: Issue 标题（必需，非空字符串）
-        body: Issue 描述正文（必需，非空字符串）
+        title: Issue 标题
+        body: Issue 描述正文
     """
     
     model_config = ConfigDict(
@@ -63,10 +98,10 @@ class ReadIssueInput(BaseModel):
 class CategorizeIssueInput(BaseModel):
     """categorize_issue 工具的输入模型
     
-    用于将 Issue 内容分类为 Bug、Feature Request 或 Question。
+    用于将 Issue 内容进行智能分类。
     
     Attributes:
-        text_content: Issue 的文本内容，应包含标题和正文（必需，非空字符串）
+        text_content: Issue 的文本内容，应包含标题和正文
     """
     
     model_config = ConfigDict(
@@ -87,7 +122,7 @@ class AssignDeveloperInput(BaseModel):
     用于根据 Issue 分类分配负责的开发者。
     
     Attributes:
-        category: Issue 分类，必须是 "Bug"、"Feature Request" 或 "Question" 之一（必需）
+        category: Issue 分类类型
     """
     
     model_config = ConfigDict(
@@ -96,7 +131,7 @@ class AssignDeveloperInput(BaseModel):
     
     category: CategoryType = Field(
         ...,
-        description="Issue 分类"
+        description="Issue 分类类型"
     )
 
 
@@ -106,7 +141,7 @@ class IssueClassificationOutput(BaseModel):
     用于 categorize_issue 工具中，表示 LLM 的结构化输出。
     
     Attributes:
-        category: Issue 分类，必须是 "Bug"、"Feature Request" 或 "Question" 之一（必需）
+        category: Issue 分类类型
         reasoning: 分类的理由说明（可选）
     """
     
@@ -116,10 +151,10 @@ class IssueClassificationOutput(BaseModel):
     
     category: CategoryType = Field(
         ...,
-        description="Issue 分类，必须是 Bug、Feature Request 或 Question 之一"
+        description="Issue 分类类型"
     )
     
     reasoning: Optional[str] = Field(
         default=None,
-        description="分类的理由（可选）"
+        description="分类的理由"
     )
